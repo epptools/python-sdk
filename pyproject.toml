@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epptools"
+version = "1.0.0"
+description = "Dependency-free Python client for EPP domain registries (RFC 5730-5734 over TLS), with a registry's own extensions discovered from its greeting."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "EppTools" }]
+keywords = ["epp", "registry", "registrar", "domains", "rfc5730", "rfc5731", "dnssec", "sdk"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: Name Service (DNS)",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/epptools/python-sdk"
+Repository = "https://github.com/epptools/python-sdk"
+Issues = "https://github.com/epptools/python-sdk/issues"
+Documentation = "https://github.com/epptools/python-sdk/blob/main/docs/en/README.md"
+Changelog = "https://github.com/epptools/python-sdk/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = ["epptools"]
+
+# PEP 561: ship the marker so type checkers use this package's inline annotations. Without it
+# mypy and pyright treat every import from `epptools` as untyped, however annotated the source is.
+[tool.setuptools.package-data]
+epptools = ["py.typed"]
+

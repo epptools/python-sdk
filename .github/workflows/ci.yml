@@ -1,0 +1,56 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-suite:
+    name: python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        os: [ubuntu-latest]
+        include:
+          # 3.8 is the floor declared in pyproject.toml, so it is tested rather than assumed. It
+          # needs the older runner: setup-python no longer offers 3.8 on ubuntu-24.04, and a matrix
+          # entry that silently fails to install the interpreter would pass without running anything.
+          - python: '3.8'
+            os: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # No install step and no dependencies: the library imports nothing outside the standard
+      # library, and running the suite straight from the checkout is what proves that.
+      - name: offline suite
+        run: python tests/offline_test.py
+
+  package:
+    name: build + metadata check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: python -m pip install --upgrade build twine
+
+      - run: python -m build
+
+      # Catches what only shows up at upload time — an unrenderable README, missing metadata — on
+      # every commit rather than at the moment of a release that then cannot be re-cut under the
+      # same version number.
+      - run: python -m twine check dist/*

@@ -1,0 +1,16 @@
+# What goes into the source distribution beyond the package itself.
+#
+# setuptools builds the sdist from a default list that stops at the package directory, so the manual
+# would be on GitHub and absent from `pip download`/`pip install --no-binary`. A reader who installs
+# the package and looks for the documentation beside it must find it there.
+include README.md
+include CHANGELOG.md
+include LICENSE
+recursive-include docs *.md
+
+# Nothing below is of use to someone installing the library.
+prune tests
+prune examples
+prune .github
+global-exclude __pycache__
+global-exclude *.py[cod]

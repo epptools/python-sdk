@@ -1,0 +1,35 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Credentials and key material. The README tells you to keep a CA bundle and, for mutual TLS, a
+# client certificate and key nearby — none of that belongs in a commit.
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.pypirc

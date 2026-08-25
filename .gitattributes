@@ -1,0 +1,5 @@
+# Normalise line endings in the repository to LF. Without this, a clone on Windows can commit CRLF
+# back and every later diff shows the whole file as changed.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
