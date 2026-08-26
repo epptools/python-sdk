@@ -4,6 +4,26 @@ All notable changes to this library are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2]
+
+### Fixed
+
+- **A postal change that carried only part of the block could delete the rest of the address.** A
+  `<contact:postalInfo>` inside `<contact:chg>` is not merged field by field by every registry: one
+  that *replaces* the block stores exactly what you sent and drops everything else — while answering
+  **1000**. Clearing an organisation on its own therefore left a contact with no name, no street, no
+  city, no postal code and no country, and nothing in the response said so. `name`, `city` and `cc`
+  are now required in every postal change, through `contact.update()` and the update builder alike.
+
+### Changed
+
+- A postal change missing `name`, `city` or `cc` now raises `ValidationException` instead of being
+  sent. This rejects calls that previously appeared to succeed — those were the calls losing data.
+  Read the current block with `client.contact.info(id).postal_info()` and send it back with your
+  change applied.
+- The documentation for partial postal updates was wrong in the same way and has been rewritten. A
+  block is replaced, not merged: a field you leave out is deleted, not preserved.
+
 ## [1.0.1]
 
 ### Fixed

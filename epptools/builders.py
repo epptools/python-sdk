@@ -508,18 +508,27 @@ class ContactUpdateBuilder(Builder):
                                      org: Optional[str] = None,
                                      state_province: Optional[str] = None,
                                      postal_code: Optional[str] = None) -> "ContactUpdateBuilder":
-        """Change the ASCII address. Only the fields you pass are sent, and PRESENCE decides:
+        """Change the ASCII address.
+
+        THE BLOCK YOU PASS REPLACES THE ONE THE REGISTRY HOLDS. It is not merged field by field,
+        so anything you leave out is deleted:
 
         ==================  ===========================================================
-        leave it out/None   the field is not sent, and the registry keeps its value
         give a value        the field is set to it
-        give ``""``         the field is CLEARED — the only way to remove org, state
-                            province or postal code
+        give ``""``         the field is CLEARED — the way to remove org, state province
+                            or postal code
+        leave it out/None   the field is not sent, and the registry DELETES what it held
         ==================  ===========================================================
 
-        The other form (local or international) is untouched. The address block is a sequence with
-        a required city and country, so passing any part of it sends the whole block: give
-        ``city`` and ``country_code`` whenever you touch street, state province or postal code.
+        RFC 5733 can be read as "leave it out and the registry keeps its value", since every child
+        of chgPostalInfoType is optional, but that reading is not safe: against a registry that
+        replaces, a block sent without its org comes back 1000 with the org gone, and a block
+        carrying only an org leaves the contact with no postal address at all. ``name``, ``city``
+        and ``country_code`` are required here for that reason — but they only keep the frame valid,
+        they cannot restore a field you did not send. Read the current block with ``contact.info()``
+        and pass it back with your change applied.
+
+        The other form (local or international) IS untouched — the two are addressed separately.
         """
         return self._address("int", name, city, country_code, street, org, state_province, postal_code)
 

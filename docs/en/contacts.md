@@ -325,31 +325,43 @@ There is no way to *remove* a contact's transfer secret. RFC 5731 gives a domain
 RFC 5733 defines no equivalent for a contact, so a contact's code can be replaced but not cleared.
 An empty password is not a substitute: an empty value is still a value the holder can present.
 
-### The partial-update rule: presence decides
+### The partial-update rule: a postal block is REPLACED, not merged
 
-Inside a postal block, **presence decides and an empty string clears**:
+Send a postal block in `chg` and the registry **replaces** the block it holds with the one you sent.
+The two are not merged field by field, so whatever you leave out is gone.
+
+RFC 5733 can be read the other way: in `chgPostalInfoType` name, org and addr are each optional,
+which looks like "leave it out and the registry keeps what it holds". That reading is not safe.
+Against a registry that replaces, **every one of these commands answers 1000**:
+
+| What the `chg` carried | What the contact had afterwards |
+|---|---|
+| the complete block, `"org": ""` | organisation removed, address untouched |
+| the complete block, no `org` key | organisation **also removed** |
+| `{"org": ""}` and nothing else | **no postal block at all** — name, street, city, postal code and country gone |
+
+So there is no such thing as changing one field of an address, and the failure is silent: the command
+succeeds and the data is gone. `name`, `city` and `cc` are required in every postal change and the
+SDK refuses the call without them, but that guard only keeps the frame schema-valid — it cannot put
+back an `org`, an `sp` or a `pc` you did not send.
+
+**Read the block, apply your change, send it back whole:**
+
+```python
+current = client.contact.info("C1").postal_info()["int"]
+client.contact.update("C1", chg={"postal_info": {**current, "type": "int", "org": ""}})
+```
+
+One thing the replacement does *not* reach is the other postal form: `int` and `loc` are addressed
+separately, so replacing one leaves the other exactly as it was.
+
+Inside the block you send, an empty string is still what clears an optional field:
 
 | You write | What happens |
 |---|---|
-| the key is absent | the field is not sent, and the registry keeps what it holds |
 | the key holds a value | the field is set to it |
 | the key holds `""` | the field is sent empty, which **clears** it |
-
-That is the only way to remove an `org`, an `sp` or a `pc`. It is also the only postal form that is
-touched: changing the `int` block leaves the `loc` block exactly as it was, and the other way round.
-
-```python
-# Remove the organisation, change nothing else about the address.
-client.contact.update("C1",
-                      chg={"postal_info": {"type": "int", "org": "",
-                                           "city": "Kyiv", "cc": "UA"}})
-```
-
-**Give `city` and `cc` whenever you touch the address at all.** The `<contact:addr>` element is a
-sequence whose city and country are required by the schema, so it is sent whole or not at all — and
-when it is sent, city and country go with it. Leaving them out of a call that changes a street line
-sends them **empty**, and an empty value is a deliberate clear. The command answers 1000 and the
-contact loses its city and country.
+| the key is absent | the field is not sent — and the registry deletes what it held |
 
 Street lines behave differently and in your favour: an address block sent without any `street`
 leaves the existing lines untouched.

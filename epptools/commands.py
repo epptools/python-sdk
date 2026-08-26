@@ -706,37 +706,41 @@ def _append_postal(frame: Frame, parent: ET.Element, pi: Dict[str, Any],
     """
     block = frame.ns(parent, _ADMIN, "contact:postalInfo", None, {"type": pi.get("type") or "int"})
 
-    if not partial or "name" in pi:
-        # WHICH FIELDS CAN BE EMPTIED IS FIXED BY THE SCHEMA, not by us. ``name`` is
-        # postalLineType, minLength 1, so there is NO WAY to clear a name — an empty element is
-        # schema-invalid and the server answers a bare 2001 naming no field. Refused here, where the
-        # message can say so.
-        _require_not_empty(pi.get("name"), "name")
-        frame.ns(block, _ADMIN, "contact:name", pi["name"])
+    # A postalInfo inside <contact:chg> REPLACES the stored one. It is not merged field by field.
+    #
+    # RFC 5733 can be read the other way: in chgPostalInfoType each of name/org/addr is optional,
+    # which looks like "omit it and the registry keeps what it holds". That reading is not safe.
+    # Against a registry that replaces, a chg carrying only <contact:org/> answers **1000** and leaves
+    # the contact with NO postalInfo at all — name, street, city, postal code and country gone, in
+    # both the int and loc blocks — and a complete block sent without an <org> removes the
+    # organisation just as surely.
+    #
+    # So the short form does not fail, it DESTROYS, and it reports success while doing it. A client
+    # cannot tell a replacing registry from a merging one, and the cost of guessing wrong is a
+    # registrant's postal address. Every change therefore carries the whole block.
+    for required in ("name", "city", "cc"):
+        if not str(pi.get(required) or "").strip():
+            raise ValidationException(
+                "postalInfo: a <contact:postalInfo> is REPLACED as a whole, not merged, so every "
+                f'change must carry the complete block — "{required}" is missing. (A registry that '
+                "replaces answers 1000 and silently drops everything you left out.) Read the current "
+                "block with contact.info() and send it back with your change applied."
+            )
+
+    # name is postalLineType, minLength 1: there is NO WAY to clear a name. An empty element is
+    # schema-invalid and the server answers a bare 2001 naming no field — refused here, where the
+    # message can say so.
+    _require_not_empty(pi.get("name"), "name")
+    frame.ns(block, _ADMIN, "contact:name", pi["name"])
+
     # org is optPostalLineType, which HAS no minLength — an empty one is legal and is exactly how an
     # organisation is removed.
     if ("org" in pi) if partial else bool(pi.get("org")):
         frame.ns(block, _ADMIN, "contact:org", pi.get("org") or "")
 
-    # <addr> is a sequence with a required city and cc, so it is emitted whole or not at all.
-    addr_keys = ("street", "city", "sp", "pc", "cc")
-    if partial and not any(k in pi for k in addr_keys):
-        return
-
-    # AND "WHOLE" MEANS THE CALLER HAS TO SUPPLY THE REQUIRED PARTS. This used to substitute an
-    # empty string for whatever was missing, so clearing one optional field — ``{"sp": ""}``, the
-    # documented way to remove a state — emitted <city/> and <cc/> alongside it. city is
-    # postalLineType (minLength 1) and cc is ccType (exactly 2 characters): the frame was
-    # schema-invalid, and what came back was a bare 2001 that names no element. A caller doing
-    # precisely what the manual said got an error pointing at nothing.
-    for required in ("city", "cc"):
-        if not pi.get(required):
-            raise ValidationException(
-                'postalInfo: changing any part of the address means sending the whole '
-                '<contact:addr>, and RFC 5733 makes "%s" a required part of it. Read the current '
-                "address with contact.info() and send city and cc back unchanged alongside what "
-                "you are changing." % required
-            )
+    # <addr> is a sequence with a required city and cc, and it is always emitted: the block replaces
+    # what the registry holds, so leaving the address out is what deletes it. The required parts were
+    # already asserted above, before anything was written.
 
     addr = frame.ns(block, _ADMIN, "contact:addr")
     for line in (pi.get("street") or []):

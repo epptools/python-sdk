@@ -440,7 +440,8 @@ def _refuses(fn):
         return exc
 
 
-_no_addr = _refuses(lambda: client.contact.update("C-1", chg={"postal_info": {"type": "loc", "sp": ""}}))
+_no_addr = _refuses(lambda: client.contact.update(
+    "C-1", chg={"postal_info": {"type": "loc", "name": "Ivan", "sp": ""}}))
 check("clearing sp WITHOUT the required parts of <addr> is refused here, not by the server", _no_addr is not None)
 check("and the message names the part that is missing", _no_addr is not None and "city" in str(_no_addr))
 
@@ -449,18 +450,35 @@ _empty_name = _refuses(lambda: client.contact.update(
 check("a name cannot be cleared at all — there is no empty postalLineType", _empty_name is not None)
 
 # The whole point of the guard is that the CORRECT call still works and still clears.
-client.contact.update("C-1", chg={"postal_info": {"type": "loc", "sp": "", "city": "Lviv", "cc": "UA"}})
+client.contact.update(
+    "C-1", chg={"postal_info": {"type": "loc", "name": "Ivan", "sp": "", "city": "Lviv", "cc": "UA"}})
 _sent = parse(fake.written[0])
 check("sp goes out as an empty element, which is what clears it",
       [e for e in _sent.iter() if local(e.tag) == "sp"][0].text in (None, ""))
 check("and the required parts travel with it",
       text_of(_sent, "city") == "Lviv" and text_of(_sent, "cc") == "UA")
 
-client.contact.update("C-1", chg={"postal_info": {"type": "loc", "org": ""}})
+# THIS USED TO ASSERT THE OPPOSITE — "clearing org alone sends no <addr> and needs no city" — and it
+# was a documented way to destroy an address. Against a registry that REPLACES the block rather than
+# merging it, a chg carrying only <contact:org/> answers 1000 and leaves the contact with NO
+# postalInfo at all.
+_org_alone = _refuses(lambda: client.contact.update("C-1", chg={"postal_info": {"type": "loc", "org": ""}}))
+check("clearing org WITHOUT the rest of the block is refused", _org_alone is not None)
+
+# The BUILDER reaches the same code, and nothing checked that it did. A guard that only covers the
+# raw call leaves the more convenient path — the one the manual leads with — able to do the damage.
+_via_builder = _refuses(lambda: client.contact.update_builder("C-1")
+                        .change_international_address(city="Lviv", country_code="UA", org="")
+                        .send())
+check("and the builder is held to the same rule, not just the raw call", _via_builder is not None)
+
+client.contact.update(
+    "C-1", chg={"postal_info": {"type": "loc", "name": "Ivan", "org": "", "city": "Lviv", "cc": "UA"}})
 _org_only = parse(fake.written[1])
-check("clearing org alone sends no <addr> and needs no city",
-      not [e for e in _org_only.iter() if local(e.tag) == "addr"]
-      and len([e for e in _org_only.iter() if local(e.tag) == "org"]) == 1)
+check("the complete form clears org AND carries the address",
+      len([e for e in _org_only.iter() if local(e.tag) == "org"]) == 1
+      and text_of(_org_only, "city") == "Lviv"
+      and text_of(_org_only, "name") == "Ivan")
 # Present-and-EMPTY is the removal; the element existing is only half of it. An <org> carrying a
 # value would set an organisation rather than take one away.
 check("and that element is empty, which is what removes the organisation",
@@ -470,7 +488,7 @@ check("and that element is empty, which is what removes the organisation",
 # organisation the caller never mentioned.
 client, fake = make_client([GREETING, OK()])
 client.connect()
-client.contact.update("C-1", chg={"postal_info": {"type": "loc", "city": "Lviv", "cc": "UA"}})
+client.contact.update("C-1", chg={"postal_info": {"type": "loc", "name": "Ivan", "city": "Lviv", "cc": "UA"}})
 check("no org element when the caller never mentioned it",
       not [e for e in parse(fake.written[0]).iter() if local(e.tag) == "org"])
 
@@ -1690,4 +1708,5 @@ check("a near-miss spelling is still refused, not silently dropped", _refused is
 print()
 print("%d passed, %d failed" % (_passed, _failed))
 sys.exit(1 if _failed else 0)
+
 

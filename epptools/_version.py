@@ -4,4 +4,4 @@ Kept in its own module so ``client`` can report it (RFC 8807 ``<loginSec:app>``)
 the package root, which imports ``client`` in turn.
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"

@@ -398,24 +398,35 @@ Statuses go in their own blocks; every field change lands in `chg`.
     .send())
 ```
 
-### Presence decides, and an empty string clears
+### An address is REPLACED, not merged
 
-Inside an address, an argument you do not pass is not sent at all, so the registry keeps what it
-holds. An argument you pass as `""` **is** sent, empty, which is what clears a field — and it is the
-only way to remove an `org`, a state province or a postal code:
+The block you pass **replaces** the one the registry holds. It is not merged field by field, so an
+argument you do not pass is not sent — and the registry deletes what it held. An argument passed as
+`""` is sent empty, which is what clears a field.
+
+RFC 5733 can be read as "leave it out and the registry keeps what it holds", since every child of
+`chgPostalInfoType` is optional, but that reading is not safe. Against a registry that replaces —
+**every command answering 1000** — a block sent without its `org` comes back with the organisation
+gone, and a block carrying only an `org` leaves the contact with no postal address at all: name,
+street, city, postal code and country.
+
+`name`, `city` and `country_code` are required in every address change for that reason, and the
+builder refuses the call without them. They keep the frame valid; they cannot restore an argument you
+did not pass. **Read the block first and pass it back with your change applied:**
 
 ```python
-# Remove the organisation, leave the rest of the address alone.
+current = client.contact.info("C1").postal_info()["int"]
+
+# Remove the organisation, keeping the rest of the address exactly as it was.
 (client.contact.update_builder("C1")
-    .change_international_address(org="", city="Kyiv", country_code="UA")
+    .change_international_address(name=current["name"], city=current["city"],
+                                  country_code=current["cc"], street=current.get("street"),
+                                  org="")
     .send())
 ```
 
-**Give `city` and `country_code` whenever you touch the address at all.** The `<contact:addr>`
-element is a sequence whose city and country the schema requires, so it is sent whole or not at all
-— and when it is sent, city and country go with it. Leaving them out of a call that changes a street
-line sends them empty, and empty is a deliberate clear. The command answers 1000 and the contact
-loses its city and country.
+The form you do not mention — local or international — is untouched: the two are addressed
+separately.
 
 Changing one postal form leaves the other exactly as it was.
 
