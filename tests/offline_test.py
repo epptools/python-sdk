@@ -461,6 +461,27 @@ _org_only = parse(fake.written[1])
 check("clearing org alone sends no <addr> and needs no city",
       not [e for e in _org_only.iter() if local(e.tag) == "addr"]
       and len([e for e in _org_only.iter() if local(e.tag) == "org"]) == 1)
+# Present-and-EMPTY is the removal; the element existing is only half of it. An <org> carrying a
+# value would set an organisation rather than take one away.
+check("and that element is empty, which is what removes the organisation",
+      [e for e in _org_only.iter() if local(e.tag) == "org"][0].text in (None, ""))
+
+# The other half of the mechanism: absent means "leave it alone". A phantom clear would wipe an
+# organisation the caller never mentioned.
+client, fake = make_client([GREETING, OK()])
+client.connect()
+client.contact.update("C-1", chg={"postal_info": {"type": "loc", "city": "Lviv", "cc": "UA"}})
+check("no org element when the caller never mentioned it",
+      not [e for e in parse(fake.written[0]).iter() if local(e.tag) == "org"])
+
+# On a create there is nothing to remove, so an empty org is simply not an element.
+client, fake = make_client([GREETING, OK()])
+client.connect()
+client.contact.create("C-1", postal_infos=[
+    {"type": "int", "name": "Test Person", "org": "", "city": "Kyiv", "cc": "UA"}],
+    email="contact@example.com", auth_info="pw")
+check("create never emits an empty org",
+      not [e for e in parse(fake.written[0]).iter() if local(e.tag) == "org"])
 
 print("contact: update collapses multiple statuses into one add/rem block")
 client, fake = make_client([GREETING, OK()])
