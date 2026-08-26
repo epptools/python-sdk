@@ -41,7 +41,11 @@ jobs:
       # The release's tag is its only public statement of the version; pyproject.toml is what ends up
       # ON PyPI. When they disagree the upload publishes a version nobody announced, under a number
       # that can never be reused.
+      #
+      # Skipped unless the ref IS a tag. On a workflow_dispatch run GITHUB_REF_NAME holds the branch
+      # name, so an unconditional check compares "main" against "1.0.0" and fails every manual run.
       - name: tag must match the packaged version
+        if: github.ref_type == 'tag'
         run: |
           packaged="$(python -c 'import tomllib,pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
           tagged="${GITHUB_REF_NAME#v}"
