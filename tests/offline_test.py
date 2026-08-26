@@ -423,6 +423,45 @@ try:
 except ValueError:
     check("empty email raises ValueError", True)
 
+print("contact: which postal fields can be CLEARED is the schema's decision, not ours")
+# contact-1.0.xsd: optPostalLineType (org, street, sp) and pcType have no minLength, so those clear
+# by being sent empty. postalLineType (name, city) has minLength 1 and ccType is exactly two
+# characters, so an empty one of those is schema-invalid — and an invalid frame comes back as a bare
+# 2001 that names no element, the least useful error in EPP.
+client, fake = make_client([GREETING, OK(), OK()])
+client.connect()
+
+
+def _refuses(fn):
+    try:
+        fn()
+        return None
+    except ValidationException as exc:
+        return exc
+
+
+_no_addr = _refuses(lambda: client.contact.update("C-1", chg={"postal_info": {"type": "loc", "sp": ""}}))
+check("clearing sp WITHOUT the required parts of <addr> is refused here, not by the server", _no_addr is not None)
+check("and the message names the part that is missing", _no_addr is not None and "city" in str(_no_addr))
+
+_empty_name = _refuses(lambda: client.contact.update(
+    "C-1", chg={"postal_info": {"type": "loc", "name": "", "city": "Lviv", "cc": "UA"}}))
+check("a name cannot be cleared at all — there is no empty postalLineType", _empty_name is not None)
+
+# The whole point of the guard is that the CORRECT call still works and still clears.
+client.contact.update("C-1", chg={"postal_info": {"type": "loc", "sp": "", "city": "Lviv", "cc": "UA"}})
+_sent = parse(fake.written[0])
+check("sp goes out as an empty element, which is what clears it",
+      [e for e in _sent.iter() if local(e.tag) == "sp"][0].text in (None, ""))
+check("and the required parts travel with it",
+      text_of(_sent, "city") == "Lviv" and text_of(_sent, "cc") == "UA")
+
+client.contact.update("C-1", chg={"postal_info": {"type": "loc", "org": ""}})
+_org_only = parse(fake.written[1])
+check("clearing org alone sends no <addr> and needs no city",
+      not [e for e in _org_only.iter() if local(e.tag) == "addr"]
+      and len([e for e in _org_only.iter() if local(e.tag) == "org"]) == 1)
+
 print("contact: update collapses multiple statuses into one add/rem block")
 client, fake = make_client([GREETING, OK()])
 client.connect()

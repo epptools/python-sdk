@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "epptools"
-version = "1.0.0"
+version = "1.0.1"
 description = "Dependency-free Python client for EPP domain registries (RFC 5730-5734 over TLS), with a registry's own extensions discovered from its greeting."
 readme = "README.md"
 requires-python = ">=3.8"

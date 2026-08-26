@@ -4,6 +4,30 @@ All notable changes to this library are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1]
+
+### Fixed
+
+- **Clearing one optional part of an address built a frame the server rejects.** RFC 5733 makes
+  `<contact:addr>` a sequence with a required `city` and `cc`, so a change to any part of it sends
+  the whole block. What the library did was substitute an EMPTY STRING for whatever the caller had
+  not supplied — so `{"sp": ""}`, the documented way to remove a state, went out with `<city/>` and
+  `<cc/>` beside it. Both are schema-invalid (`postalLineType` has minLength 1, `ccType` is exactly
+  two characters), and an invalid frame comes back as a bare `2001` naming no element. A caller
+  following the manual got the least useful error in EPP.
+
+  A partial address change now requires `city` and `cc` and says so before anything is sent. Read
+  them back from `info()` and pass them through unchanged alongside what you are changing.
+
+- **An empty value is now refused for the fields the schema forbids it on.** Which parts of a
+  contact can be CLEARED is fixed by `contact-1.0.xsd` and not by convention: `org`, `street`, `sp`
+  and `pc` have types with no minimum length, so sending them empty is what removes them; `name`,
+  `city` and `cc` do not, so an empty one cannot be sent at all. Passing one is answered here, with
+  the reason, instead of costing a round trip.
+
+Neither changes a call that worked. Both turn a call the server was already rejecting into one that
+fails immediately and says why.
+
 ## [1.0.0]
 
 First public release.
