@@ -1652,6 +1652,35 @@ check("an omitted state means after, and a custom operation keeps its own verb",
 
 check("a response with no change block reports none", _trn.change() is None)
 
+# EVERY VERSION THIS PACKAGE STATES ABOUT ITSELF AGREES WITH ITS OWN VERSION.
+#
+# The install instructions offer a GitHub alternative "pinned to a release tag", which has to name a
+# version — and so goes stale at the next release, silently, in three languages at once. It did:
+# README told people to install v1.0.2 while the package was 1.1.0, and the manuals still said 1.0.0
+# from two releases before that. A reader following the documented line got an older library than
+# the one the same page describes.
+#
+# Nothing keeps that in step except something that fails when it drifts. Only x.y.z strings that
+# LOOK like this package's version are considered, so Python version floors, RFC numbers and the
+# changelog's history of older releases are untouched.
+import re as _re
+from epptools._version import __version__
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_docs = [os.path.join(_root, "README.md")]
+for _dirpath, _dirnames, _filenames in os.walk(os.path.join(_root, "docs")):
+    for _name in _filenames:
+        if _name.endswith(".md") and _name != "CHANGELOG.md":
+            _docs.append(os.path.join(_dirpath, _name))
+
+_stale = []
+for _f in _docs:
+    with open(_f, encoding="utf-8") as _fh:
+        for _m in _re.finditer(r"(?<![\d.])1\.\d+\.\d+(?![\d.])", _fh.read()):
+            if _m.group(0) != __version__:
+                _stale.append("%s: %s" % (os.path.basename(_f), _m.group(0)))
+check("every documented version is %s%s" % (__version__, (" — stale: " + ", ".join(_stale[:4])) if _stale else ""),
+      not _stale)
+
 _chk = Response.from_xml(
     '<?xml version="1.0"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response>'
     '<result code="1000"><msg>ok</msg></result><resData>'

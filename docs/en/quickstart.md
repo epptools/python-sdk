@@ -13,7 +13,7 @@ pip install epptools
 Pinned to a release tag straight from GitHub, if you would rather not depend on PyPI:
 
 ```bash
-pip install "epptools @ git+https://github.com/epptools/python-sdk@v1.0.0"
+pip install "epptools @ git+https://github.com/epptools/python-sdk@v1.1.1"
 ```
 
 No packaging at all? Copy the `epptools/` package folder next to your code and `import epptools`.

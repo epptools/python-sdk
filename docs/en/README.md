@@ -1,6 +1,6 @@
 # EppTools for Python — reference manual
 
-**EppTools 1.0.0** · `pip install epptools`
+**EppTools 1.1.1** · `pip install epptools`
 
 This manual is for a developer at a sub-registrar who has to provision domains and bill for them
 against a domain registry that speaks EPP, and who has not written an EPP client before.
@@ -53,7 +53,7 @@ version the registry saw are the one version:
 ```python
 import epptools
 
-print(epptools.__version__)          # '1.0.0'
+print(epptools.__version__)          # '1.1.1'
 ```
 
 Account, billing and registration questions go to your registry account manager, not here — this

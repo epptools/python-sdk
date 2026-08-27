@@ -13,7 +13,7 @@ pip install epptools
 Прямо з GitHub із прив'язкою до тегу релізу, якщо ви волієте не залежати від PyPI:
 
 ```bash
-pip install "epptools @ git+https://github.com/epptools/python-sdk@v1.0.0"
+pip install "epptools @ git+https://github.com/epptools/python-sdk@v1.1.1"
 ```
 
 Узагалі без пакування? Покладіть теку пакета `epptools/` поруч зі своїм кодом і зробіть
