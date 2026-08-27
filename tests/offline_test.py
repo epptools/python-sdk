@@ -1612,6 +1612,46 @@ check("a transfer notice carries the counterparty and the deadline",
       _trn.transfer()["requested_by"] == "ACME"
       and _trn.transfer()["act_by"] == "2026-08-21T09:00:00Z")
 
+# RFC 8590. A notice about something the registry did to your object arrives as a sentence in the
+# language of your account, which no program can rely on; this is the same event as data.
+_chg = Response.from_xml(
+    '<?xml version="1.0"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response>'
+    '<result code="1301"><msg>Command completed successfully; ack to dequeue</msg></result>'
+    '<msgQ count="1" id="217"><qDate>2026-08-27T09:15:00Z</qDate>'
+    '<msg lang="uk">Домен більше не існує в реєстрі.</msg></msgQ>'
+    '<resData><domain:infData xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">'
+    '<domain:name>gone.com.ua</domain:name><domain:roid>D-9001</domain:roid>'
+    '</domain:infData></resData>'
+    '<extension><changePoll:changeData xmlns:changePoll="urn:ietf:params:xml:ns:changePoll-1.0" state="before">'
+    '<changePoll:operation>delete</changePoll:operation>'
+    '<changePoll:date>2026-08-27T09:15:00Z</changePoll:date>'
+    '<changePoll:svTRID>SRV-1</changePoll:svTRID>'
+    '<changePoll:who>Registry</changePoll:who>'
+    '<changePoll:reason>deleted</changePoll:reason>'
+    '</changePoll:changeData></extension>'
+    '<trID><clTRID>C1</clTRID><svTRID>S1</svTRID></trID></response></epp>'
+)
+check("a change notice says what happened, without reading the sentence",
+      _chg.change()["operation"] == "delete" and _chg.change()["who"] == "Registry"
+      and _chg.change()["reason"] == "deleted")
+# Which way resData reads. A domain that no longer exists can only be described as it last was, and
+# treating that as its CURRENT state is how a client resurrects a deleted object in its own store.
+check("and which way the object beside it reads",
+      _chg.change()["state"] == "before" and _chg.object_name() == "gone.com.ua")
+
+_chg_default = Response.from_xml(_inf_data(
+    '<changePoll:changeData xmlns:changePoll="urn:ietf:params:xml:ns:changePoll-1.0">'
+    '<changePoll:operation op="sync">custom</changePoll:operation>'
+    '<changePoll:date>2026-08-27T09:15:00Z</changePoll:date>'
+    '<changePoll:svTRID>SRV-2</changePoll:svTRID><changePoll:who>CSR</changePoll:who>'
+    '</changePoll:changeData>'
+))
+check("an omitted state means after, and a custom operation keeps its own verb",
+      _chg_default.change()["state"] == "after" and _chg_default.change()["op"] == "sync"
+      and _chg_default.change()["reason"] == "")
+
+check("a response with no change block reports none", _trn.change() is None)
+
 _chk = Response.from_xml(
     '<?xml version="1.0"?><epp xmlns="urn:ietf:params:xml:ns:epp-1.0"><response>'
     '<result code="1000"><msg>ok</msg></result><resData>'

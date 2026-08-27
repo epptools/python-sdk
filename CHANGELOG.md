@@ -4,6 +4,28 @@ All notable changes to this library are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+
+- **`change()` — what the registry did to your object, as data instead of a sentence (RFC 8590).**
+  Some poll notices describe something that happened to one of your objects without you asking: it
+  stopped existing at the registry, or it left on a transfer. Those are the ones you have to act on
+  automatically — stop billing it, tell your customer, drop it from your own store — and the `<msg>`
+  they carry is written in your account's notification language, so nothing in it is safe to parse.
+
+  `change()` returns the operation, when it happened, who did it, the server transaction id and the
+  registry's own finer name for the event, or `null` where the notice carries no change block. The
+  object itself is in the response as usual, so the ordinary accessors read it.
+
+  **`state` matters**: it says whether that object describes itself **before** the change or
+  **after** it. A domain that no longer exists can only be described as it last was, so those
+  notices read `before` — storing such a block as the object's *current* state is how a deleted
+  domain comes back to life in your own records.
+
+  To receive it, announce `urn:ietf:params:xml:ns:changePoll-1.0` at login. This library mirrors the
+  server's greeting into `<svcs>`, so a server that offers it is announced for you unless you pin
+  your own service list.
 ## [1.0.2]
 
 ### Fixed

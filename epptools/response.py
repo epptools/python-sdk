@@ -686,6 +686,42 @@ class Response:
             "expiry_date": _text(self._direct_child(el, "exDate")),
         }
 
+    def change(self) -> Optional[Dict[str, str]]:
+        """What the registry did to one of your objects without you asking (RFC 8590 change poll)::
+
+            {'operation': 'delete', 'op': '', 'state': 'before', 'date': ...,
+             'sv_trid': ..., 'who': 'Registry', 'reason': 'deleted'}
+
+        A poll notice about a server-initiated change carries a human sentence in ``<msg>``, and
+        that sentence is written in your account's notification language. This is the same event
+        stated so that code can act on it; the object itself is in ``<resData>`` as usual.
+
+        ``state`` says which way that object reads: ``'before'`` describes it as it last was (a
+        domain that no longer exists cannot be described any other way), ``'after'`` as it now is —
+        treating a ``'before'`` block as current is how a client resurrects a deleted object in its
+        own store. ``who`` is free text for audit and the server chooses what to put there — a
+        role, a name or an identifier; ``'Registry'`` means the change came from the registry side
+        rather than from your account. ``op`` qualifies a ``'custom'`` operation with the
+        registry's own verb and is empty for the operations the RFC enumerates.
+
+        None when the response carries no change block — including when you did not announce
+        ``urn:ietf:params:xml:ns:changePoll-1.0`` at login, since a server sends this only on
+        request."""
+        el = self._first("changeData")
+        if el is None:
+            return None
+        operation = self._direct_child(el, "operation")
+        return {
+            "operation": _text(operation),
+            "op": (operation.get("op") or "") if operation is not None else "",
+            # 'after' is the schema default, so an omitted attribute means 'after', not "unknown".
+            "state": el.get("state") or "after",
+            "date": _text(self._direct_child(el, "date")),
+            "sv_trid": _text(self._direct_child(el, "svTRID")),
+            "who": _text(self._direct_child(el, "who")),
+            "reason": _text(self._direct_child(el, "reason")),
+        }
+
     # --- availability / money shortcuts ----------------------------------------
 
     def is_available(self, name: str) -> Optional[bool]:

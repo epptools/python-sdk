@@ -194,6 +194,8 @@ if msg.message_id() is not None:      # message_count() = how many remain
     msg.queue_message()               # the NOTICE text (<msgQ><msg>) — read this
     msg.queue_message_lang()          # its language: "uk" | "ru" | "en"
     msg.queue_date()                  # when it was queued
+    msg.change()                      # RFC 8590: what the registry DID to your object, as data
+                                      # rather than as the sentence above
     client.poll.ack(msg.message_id()) # ack DESTROYS it at the registry
 b = client.balance().balance()        # {"creditLimit": ..., "balance": ..., "availableCredit": ...}
 ```
@@ -227,11 +229,45 @@ r.message_id()      # poll: id to pass to poll.ack(); message_count() = queue si
 r.queue_message()   # poll: the NOTICE text (<msgQ><msg>), NOT the result banner
 r.queue_message_lang()  # poll: the notice's language ("uk" | "ru" | "en")
 r.queue_date()      # poll: when the notice was queued
+r.change()          # poll, RFC 8590: what the registry did to your object, or None —
+                    # {"operation": "delete", "op": "", "state": "before", "date": ...,
+                    #  "sv_trid": ..., "who": "Registry", "reason": "deleted"}
 r.error_reasons()   # extra <extValue><reason> text on a failed command
 r.sv_trid()         # server transaction id
 r.raw               # the raw XML
 r.root              # the parsed ElementTree root, for anything bespoke
 ```
+
+### Reacting to changes you did not make (RFC 8590)
+
+Some poll notices describe something that happened to one of your objects without you asking: it
+stopped existing at the registry, or it left on a transfer. Those are the notices you have to act on
+automatically — stop billing it, tell your customer, drop it from your own store — and the `<msg>`
+they carry is a sentence written in your account's notification language, so there is nothing there
+a program can rely on.
+
+`change()` is the same event as data. The object itself is in the response as usual, so the ordinary
+accessors work on it:
+
+```python
+msg = client.poll.request()
+chg = msg.change()
+if chg is not None:
+    chg["operation"]    # "delete" | "transfer" | "renew" | "update" | "restore" | "autoRenew" | …
+    chg["who"]          # who did it. "Registry" = the registry, not you
+    chg["reason"]       # the registry's finer name for the event, where it has one
+    msg.object_name()   # …and the object it happened to
+```
+
+**`state` matters.** It says whether the object beside the change describes it **`before`** the
+change or **`after`** it. A domain that no longer exists can only be described as it last was, so
+those notices read `before` — writing such a block into your store as the object's *current* state
+is how a deleted domain comes back to life in your own records.
+
+To receive this at all, announce `urn:ietf:params:xml:ns:changePoll-1.0` at login. This library
+mirrors the server's greeting into `<svcs>`, so a server that offers it is announced automatically;
+set `Config.ext_uris` if you pin your own service list. A server sends `changeData` only to a client
+that asked for it, and `change()` returns `None` where there is none.
 
 ### Reading an object without touching XML
 
