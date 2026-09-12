@@ -94,7 +94,9 @@ is the part to act on: the text is written for a human, the payload is written f
 | Kind | Structured payload | Accessor |
 |---|---|---|
 | A transfer request, approval, rejection or cancellation | `<domain:trnData>` / `<contact:trnData>` | `transfer()`, `transfer_status()` |
+| A registration that reached the registry and is pending THERE | `<domain:creData>` | `object_name()`, `created_date()`, `expiry_date()` |
 | The outcome of an action the registry completed offline | `<domain:panData>` / `<contact:panData>` | `pending_action_data()` |
+| The registry changed one of your objects: expiry, deletion, redemption, auto-renewal, a pruned nameserver | `<domain:infData>` | `object_name()`, `statuses()`, `expiry_date()` |
 | A low-balance warning | the account figures, where the registry attaches them | `balance()`, `available_credit()` |
 | Anything else the registry wants to tell you | none | `queue_message()` |
 

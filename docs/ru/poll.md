@@ -94,7 +94,9 @@ show_to_operator(text, lang)
 | Вид | Структурированная нагрузка | Метод чтения |
 |---|---|---|
 | Запрос, одобрение, отклонение или отмена трансфера | `<domain:trnData>` / `<contact:trnData>` | `transfer()`, `transfer_status()` |
+| Регистрация, дошедшая до реестра и ожидающая решения ТАМ | `<domain:creData>` | `object_name()`, `created_date()`, `expiry_date()` |
 | Итог действия, которое реестр завершил асинхронно | `<domain:panData>` / `<contact:panData>` | `pending_action_data()` |
+| Реестр изменил ваш объект: истечение срока, удаление, выкуп, автопродление, снятый сервер имён | `<domain:infData>` | `object_name()`, `statuses()`, `expiry_date()` |
 | Предупреждение о низком балансе | показатели счёта, когда реестр их прикладывает | `balance()`, `available_credit()` |
 | Всё прочее, что реестр хочет вам сообщить | нет | `queue_message()` |
 

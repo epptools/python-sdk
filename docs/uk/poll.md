@@ -93,7 +93,9 @@ show_to_operator(text, lang)
 | Різновид | Структуроване навантаження | Аксесор |
 |---|---|---|
 | Запит на трансфер, схвалення, відмова або скасування | `<domain:trnData>` / `<contact:trnData>` | `transfer()`, `transfer_status()` |
+| Реєстрація, що дійшла до реєстру й очікує рішення ТАМ | `<domain:creData>` | `object_name()`, `created_date()`, `expiry_date()` |
 | Результат дії, яку реєстр завершив офлайн | `<domain:panData>` / `<contact:panData>` | `pending_action_data()` |
+| Реєстр змінив ваш об'єкт: завершення терміну, видалення, викуп, автопродовження, знятий сервер імен | `<domain:infData>` | `object_name()`, `statuses()`, `expiry_date()` |
 | Попередження про низький баланс | показники облікового запису, коли реєстр їх додає | `balance()`, `available_credit()` |
 | Будь-що інше, що реєстр хоче вам сказати | немає | `queue_message()` |
 
